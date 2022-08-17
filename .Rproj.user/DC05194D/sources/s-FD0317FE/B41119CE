@@ -1,0 +1,27 @@
+{
+    "id": "B41119CE",
+    "path": "~/codigo/r/Tradeoff_repository/Analyses/monegros_detectability.R",
+    "project_path": "Analyses/monegros_detectability.R",
+    "type": "r_source",
+    "hash": "1569758739",
+    "contents": "",
+    "dirty": false,
+    "created": 1660655528387.0,
+    "source_on_save": false,
+    "relative_order": 12,
+    "properties": {
+        "tempName": "Untitled1",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "745,59",
+        "scrollLine": "735"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1660725399,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1660725399279,
+    "read_only": false,
+    "read_only_alternatives": []
+}
