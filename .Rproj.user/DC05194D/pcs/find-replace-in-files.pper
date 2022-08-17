@@ -1,0 +1,14 @@
+{
+    "dialog-state": {
+        "query": "\"alpine.RData\"",
+        "path": "~/codigo/r",
+        "regex": false,
+        "caseSensitive": false,
+        "wholeWord": false,
+        "filePatterns": [],
+        "excludeFilePatterns": [],
+        "resultsCount": 2,
+        "errorCount": 0,
+        "replaceErrors": ""
+    }
+}
