@@ -7,7 +7,7 @@ library(island)
 
 # Preparing data ----------------------------------------------------------
 
-# bac comes from monegros.R
+# bac comes from soil.R
 
 temp <- bac %>% filter(Site == "Ermatingen", Treatment == "C0")
 temp 
