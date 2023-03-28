@@ -285,5 +285,6 @@ slope <- sm$coefficients[2,1]
 df <- out$df.residual
 slope0 <- slope-abs(qt(0.025,df))*stde
 slope1 <- slope+abs(qt(0.025,df))*stde 
+slope
 slope0
 slope1
