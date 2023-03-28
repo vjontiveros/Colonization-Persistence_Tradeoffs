@@ -1,16 +1,3 @@
-# (1/min(rat.gen$MA))/(1/min(rat.gen$Occ))
-# 
-# 
-# plot((sort(rat.gen$MA))/(sum(rat.gen$MA)))
-# 
-# nrow(rat.gen)
-#  unique(sample.int(219, 250, prob = log10(rat.gen$MA * 10000), replace = T))
-# 
-#  plot(table(sample.int(219, 250, prob = log10(rat.gen$MA * 10000), replace = T)))
-# 
-#  summary(rat.gen$Occ)
-
-
 
 # Preambule ---------------------------------------------------------------
 
@@ -86,51 +73,23 @@ plot(rat.gen$Occ, as.vector(prova))
 sp.time.mat <- sample.species %>% filter(Time != 0) %>% add_column(n = 1) %>% 
   pivot_wider(names_from = Time, values_from = n, values_fill = 0) %>% arrange(Species)
 
-# I'm gonna reorder the matrix to have similar communities close, just selecting greedily the next sample
+# I'm gonna reorder the matrix to have similar communities close, just selecting
+# the order performing hierarchical clustering of the samples, which effectively
+# clusters the most similar samples together.
 
-sp.time.mat
+sim.order <- hclust(dist(t(as.matrix(sp.time.mat[, -1]))), method = 'ward.D')$order
 
-m3 <- m1 <- sp.time.mat[, -1]
-  
-m2 <- shared_species <- crossprod(as.matrix(sp.time.mat[, -1]))
-diag(shared_species) <- 0
-max.shared <- max(shared_species)
-m2.pos <- col.index <- which(shared_species == max.shared, arr.ind = T)
-
-m3[, 1] <- sp.time.mat[, col.index[1, 1] + 1]
-m3[, 2] <- sp.time.mat[, col.index[1, 2] + 1]
-
-m2 <- shared_species[-col.index[1, 1], -col.index[1, 1]]
-
-initial.col <- which(colnames(m2) == m2.pos[1, 2])
-
-for(i in 3:1000){
-  next.col <- which.max(m2[, initial.col])
-  # print(next.col)
-  m3[, i] <- m1[, as.numeric(names(next.col))]
-  # m2 <- m2[-as.numeric(colnames(m2)[initial.col]), -as.numeric(colnames(m2)[initial.col])]
-  m2 <- m2[-initial.col, -initial.col]
-  # m2
-  initial.col <- which(colnames(m2) == names(next.col))
-  # print(initial.col)
-}
-
+m3 <- sp.time.mat[, -1]
+m3 <- sp.time.mat[, sim.order]
 
 ab.sim <- regular_sampling_scheme(as.data.frame(cbind(sp.time.mat[, 1], m3)), 
                                   2:1001, level = "Species", n = 0)
 
-# save(ab.sim, file = "absim.RData")
-
-plot(ab.sim$e[!rat.gen$Core], rat.gen$Occ[!rat.gen$Core])
+plot(ab.sim$e[rat.gen$Core], rat.gen$Occ[rat.gen$Core])
 cor.test(log10(ab.sim$c)[!rat.gen$Core], log10(1/ab.sim$e)[!rat.gen$Core])
 
 ab.sim <- ab.sim %>% mutate(p = 1/e)
-summary(lm(data = ab.sim[!rat.gen$Core, ], log10(p) ~ log10(c)))
-# plot(ab.sim$c, ab.sim$e)
-# 
-# sp.time.df <- as.data.frame(sp.time.mat)
-# rowSums(sp.time.df[, -1])
-# summary(rowSums(sp.time.df[, -1])))))
+summary(lm(data = ab.sim[rat.gen$Core, ], log10(p) ~ log10(c)))
 
 
 # Obtaining estimate for the slope  ---------------------------------------
@@ -139,48 +98,40 @@ set.seed(957238401)
 
 reps <- 300
 
+sim.length <- 1000
+
 sim.slope <- rep(NA, reps)
 
 for(rep in 1:length(sim.slope)){
   sample.species <- data.frame(Time = 0, Species = 0)
-  for(i in 1:100){
+  for(i in 1:sim.length){
     species <- unique(sample.int(219, 65, prob = log10(rat.gen$MA * 10000), replace = T))
     sample.species <- sample.species %>% add_row(Time = i, Species = species)
   }
 
   sp.time.mat <- sample.species %>% filter(Time != 0) %>% add_column(n = 1) %>%
     pivot_wider(names_from = Time, values_from = n, values_fill = 0) %>% arrange(Species)
-
-  m3 <- m1 <- sp.time.mat[, -1]
-  m2 <- shared_species <- crossprod(as.matrix(sp.time.mat[, -1]))
-  diag(shared_species) <- 0
-  max.shared <- max(shared_species)
-  m2.pos <- col.index <- which(shared_species == max.shared, arr.ind = T)
-
-  m3[, 1] <- sp.time.mat[, col.index[1, 1] + 1]
-  m3[, 2] <- sp.time.mat[, col.index[1, 2] + 1]
-
-  m2 <- shared_species[-col.index[1, 1], -col.index[1, 1]]
-
-  initial.col <- which(colnames(m2) == m2.pos[1, 2])
-
-  for(i in 3:100){
-    next.col <- which.max(m2[, initial.col])
-    m3[, i] <- m1[, as.numeric(names(next.col))]
-    m2 <- m2[-initial.col, -initial.col]
-    initial.col <- which(colnames(m2) == names(next.col))
-  }
-
+  
+  sim.order <- hclust(dist(t(as.matrix(sp.time.mat[, -1]))), method = 'ward.D')$order
+  
+  m3 <- sp.time.mat[, -1]
+  m3 <- sp.time.mat[, sim.order]
+  
+  
   ab.sim <- regular_sampling_scheme(as.data.frame(cbind(sp.time.mat[, 1], m3)),
-                                    2:101, level = "Species", n = 0)
-
+                                    2:(sim.length + 1), level = "Species", n = 0)
+  
   ab.sim <- ab.sim %>% mutate(p = 1/e)
-
-  sim.slope[rep] <- try(unname(coef(lm(data = ab.sim[!rat.gen$Core, ],
-                                   log10(p) ~ log10(c)))[2]))
+  
+  sim.slope[rep] <- try(unname(coef(lm(data = ab.sim,
+                                       log10(p) ~ log10(c)))[2]))
 }
 
+
 # Calculate confidence interval
+sim.slope <- sim.slope %>% as.numeric()
+
+sim.slope <- sim.slope[!(sim.slope %>% is.na())]
 
 sample.mean <- sim.slope %>% mean(na.rm = T)
 
@@ -199,3 +150,160 @@ lower.bound <- sample.mean - margin.error
 upper.bound <- sample.mean + margin.error
 print(c(lower.bound,upper.bound))
 
+summary(sim.slope)
+
+# save(sim.slope, file = "Data/observed_slope1000t.RData")
+
+
+# TRYING WITH A LOGNORMAL -----------------------------------------------
+
+set.seed(98385323)
+sim.lnorm <- rlnorm(100, -4, 1.7) #Usign mean -4 and sd 1.7 as the monegros data was like this
+
+ab.to.occ <- data.frame()
+
+metacomm <- c(5000, 6000, 7000, 8000, 9000, 10000)
+localcomm <- c(50, 60, 70, 80, 90, 100)
+
+for(nn in metacomm){
+  for(j in localcomm){
+    sample.species <- data.frame(Time = 0, Species = 0)
+    for(i in 1:1000){
+      species <- unique(sample.int(100, j, prob = log10(sim.lnorm * nn), replace = T))
+      sample.species <- sample.species %>% add_row(Time = i, Species = species) 
+    }  
+    
+    prova <- unname(table(sample.species$Species)[-1])/1000
+    
+    ab.to.occ <- rbind(ab.to.occ, c(nn, j, min(prova), mean(prova), max(prova)))    
+  }
+}
+
+# As this is just a theoretical distribution, we do not have to mimic any given
+# species occupancy. So I select metacomm 10000 and localcomm 70 because it has
+# a good range of occupancies.
+
+set.seed(957238401)
+
+reps <- 300
+sim.length <- 1000
+
+sim.slope <- rep(NA, reps)
+
+for(rep in 1:length(sim.slope)){
+  sample.species <- data.frame(Time = 0, Species = 0)
+  for(i in 1:sim.length){
+    species <- unique(sample.int(100, 70, prob = log10(sim.lnorm * 10000), replace = T))
+    sample.species <- sample.species %>% add_row(Time = i, Species = species)
+  }
+  
+  sp.time.mat <- sample.species %>% filter(Time != 0) %>% add_column(n = 1) %>%
+    pivot_wider(names_from = Time, values_from = n, values_fill = 0) %>% arrange(Species)
+  
+  sim.order <- hclust(dist(t(as.matrix(sp.time.mat[, -1]))), method = 'ward.D')$order
+  
+  m3 <- sp.time.mat[, -1]
+  m3 <- sp.time.mat[, sim.order]
+  
+  ab.sim <- regular_sampling_scheme(as.data.frame(cbind(sp.time.mat[, 1], m3)),
+                                    2:(sim.length + 1), level = "Species", n = 0)
+  
+  ab.sim <- ab.sim %>% mutate(p = 1/e)
+  
+  sim.slope[rep] <- try(unname(coef(lm(data = ab.sim,
+                                       log10(p) ~ log10(c)))[2]))
+}
+
+# Calculate confidence interval
+sim.slope <- sim.slope %>% as.numeric()
+
+sim.slope <- sim.slope[!(sim.slope %>% is.na())]
+
+
+sample.mean <- sim.slope  %>% mean(na.rm = T)
+
+sample.n <- length(sim.slope)
+sample.sd <- sd(sim.slope)
+sample.se <- sample.sd/sqrt(sample.n)
+print(sample.se)
+
+alpha = 0.05
+degrees.freedom = sample.n - 1
+t.score = qt(p=alpha/2, df=degrees.freedom,lower.tail=F)
+print(t.score)
+
+margin.error <- t.score * sample.se
+lower.bound <- sample.mean - margin.error
+upper.bound <- sample.mean + margin.error
+print(c(lower.bound,upper.bound))
+
+summary(sim.slope)
+
+# save(sim.slope, file = 'Data/lnorm_slope1000t.RData')
+
+
+
+# SAME OCCUPANCY = EQUAL FITNESS ------------------------------------------
+
+set.seed(98316823)
+
+# We are going to use equal fitness, that in this case translates to similar
+# occupancies. So, the metacommunity here doesn't have any influence, but the
+# local sample controls occupancy. Say that we take 50 individuals locally. 
+
+
+reps <- 300
+sim.length <- 1000
+
+sim.slope <- rep(NA, reps)
+
+for(rep in 1:length(sim.slope)){
+  sample.species <- data.frame(Time = 0, Species = 0)
+  for(i in 1:sim.length){
+    species <- unique(sample.int(100, 50, prob = rep(1, 100), replace = T))
+    sample.species <- sample.species %>% add_row(Time = i, Species = species)
+  }
+  
+  sp.time.mat <- sample.species %>% filter(Time != 0) %>% add_column(n = 1) %>%
+    pivot_wider(names_from = Time, values_from = n, values_fill = 0) %>% arrange(Species)
+  
+  sim.order <- hclust(dist(t(as.matrix(sp.time.mat[, -1]))), method = 'ward.D')$order
+  
+  m3 <- sp.time.mat[, -1]
+  m3 <- sp.time.mat[, sim.order]
+  
+  ab.sim <- regular_sampling_scheme(as.data.frame(cbind(sp.time.mat[, 1], m3)),
+                                    2:(sim.length + 1), level = "Species", n = 0)
+  
+  ab.sim <- ab.sim %>% mutate(p = 1/e)
+  
+  sim.slope[rep] <- try(unname(coef(lm(data = ab.sim,
+                                       log10(p) ~ log10(c)))[2]))
+}
+
+# Calculate confidence interval
+sim.slope <- sim.slope %>% as.numeric()
+
+sim.slope <- sim.slope[!(sim.slope %>% is.na())]
+
+
+sample.mean <- sim.slope  %>% mean(na.rm = T)
+
+sample.n <- length(sim.slope)
+sample.sd <- sd(sim.slope)
+sample.se <- sample.sd/sqrt(sample.n)
+print(sample.se)
+
+alpha = 0.05
+degrees.freedom = sample.n - 1
+t.score = qt(p=alpha/2, df=degrees.freedom,lower.tail=F)
+print(t.score)
+
+margin.error <- t.score * sample.se
+lower.bound <- sample.mean - margin.error
+upper.bound <- sample.mean + margin.error
+print(c(lower.bound,upper.bound))
+
+summary(sim.slope)
+
+# save(sim.slope, file = 'Data/equal_slope1000t.RData')
