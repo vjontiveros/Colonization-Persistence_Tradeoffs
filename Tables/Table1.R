@@ -179,8 +179,9 @@ slope.df3 <-
 
 slope.df <- rbind(slope.df1, slope.df2, slope.df3)
 slope.df$Community <- factor(slope.df$Community, levels = c("Lakes", 'Soils', 'Monegros'))
+slope.df$Community <- recode_factor(slope.df$Community, Lakes = "A", Soils = "B", Monegros = "C")
 
-ggplot(slope.df, aes(x = forcats::fct_rev(factor(Taxonomy, levels = c("Phylum", "Class", 'Order', 'Family', 'Genus'))),
+new_F1 <- ggplot(slope.df, aes(x = forcats::fct_rev(factor(Taxonomy, levels = c("Phylum", "Class", 'Order', 'Family', 'Genus'))),
                      y = slope,
                      color = Community)) +
   geom_hline(yintercept = -1) +
@@ -190,8 +191,12 @@ ggplot(slope.df, aes(x = forcats::fct_rev(factor(Taxonomy, levels = c("Phylum", 
   coord_flip() +
   scale_color_manual(values = c("#14878c", "#81392a", "#e4b925")) +
   theme_bw() +
-  theme(panel.grid = element_blank(), aspect.ratio = .618, legend.position = 'none') +
+  theme(panel.grid = element_blank(), aspect.ratio = .618, 
+        legend.position = 'none', strip.background = element_blank(),
+        strip.text = element_text(hjust = 0, size = 14)) +
   xlab("Taxonomic level") +
   ylab("Slope")
 
+new_F1
 
+ggsave(new_F1, filename = "Figures/slopes.eps", dpi = 300, width = 9, units = "cm")
