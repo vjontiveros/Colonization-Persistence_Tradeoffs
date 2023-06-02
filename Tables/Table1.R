@@ -200,3 +200,4 @@ new_F1 <- ggplot(slope.df, aes(x = forcats::fct_rev(factor(Taxonomy, levels = c(
 new_F1
 
 ggsave(new_F1, filename = "Figures/slopes.eps", dpi = 300, width = 9, units = "cm")
+
